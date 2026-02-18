@@ -4,10 +4,33 @@ import upcheck.{check_all, summarize}
 
 import report.{format_report, print_report, save_report}
 
+fn load_urls(path: Text) -> List[Text]
+  effects(Fs, Console)
+{
+  let result = Fs.read(path)
+  match result {
+    Ok(content) => {
+      let lines = content.split("\n")
+      lines.filter(fn(line) {
+        line.trim().len() > 0
+      })
+    }
+    Err(e) => {
+      Console.println("Failed to read ${path}: ${e}")
+      let empty: List[Text] = []
+      empty
+    }
+  }
+}
+
 fn main()
   effects(Net, Console, Fs)
 {
-  let urls = ["https://example.com", "https://httpbin.org/get", "https://httpbin.org/status/500", "https://bad.invalid"]
+  let urls = load_urls("urls.txt")
+  if urls.len() == 0 {
+    Console.println("No URLs found in urls.txt")
+    return
+  }
   let checks = check_all(urls)
   let summary = summarize(checks)
   let report = format_report(checks, summary)

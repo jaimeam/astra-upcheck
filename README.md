@@ -13,6 +13,16 @@ export PATH="$PATH:/tmp/astra/target/release"
 
 ## Usage
 
+Add the URLs you want to check to `urls.txt`, one per line:
+
+```
+https://example.com
+https://httpbin.org/get
+https://httpbin.org/status/500
+```
+
+Then run:
+
 ```bash
 astra run src/main.astra
 ```
@@ -30,7 +40,7 @@ Checking 4 URLs...
 Summary: 2 up, 2 down (4 total)
 ```
 
-The URL list is configured in `src/main.astra`. A report is also saved to `report.txt`.
+A report is also saved to `report.txt`.
 
 ## Project structure
 

@@ -1,0 +1,4 @@
+https://example.com
+https://httpbin.org/get
+https://httpbin.org/status/500
+https://bad.invalid
