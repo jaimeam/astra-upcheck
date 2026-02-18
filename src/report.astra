@@ -1,0 +1,51 @@
+module report
+
+import upcheck.{Up, Down}
+
+fn format_check(check: { url: Text, status: HealthStatus }) -> Text
+{
+  match check.status {
+    Up(code) => "  [UP]   ${check.url} (${to_text(code)})"
+    Down(reason) => "  [DOWN] ${check.url} (${reason})"
+    Timeout => "  [DOWN] ${check.url} (timeout)"
+  }
+}
+
+public fn format_report(checks: List[{ url: Text, status: HealthStatus }], summary: { total: Int, up: Int, down: Int }) -> Text
+{
+  let mut lines = []
+  for check in checks {
+    lines = lines + [format_check(check)]
+  }
+  let body = lines.join("\n")
+  let summary_line = "Summary: ${to_text(summary.up)} up, ${to_text(summary.down)} down (${to_text(summary.total)} total)"
+  body + "\n\n" + summary_line
+}
+
+public fn print_report(report: Text)
+  effects(Console)
+{
+  Console.println(report)
+}
+
+public fn save_report(report: Text, path: Text)
+  effects(Fs, Console)
+{
+  let result = Fs.write(path, report)
+  match result {
+    Ok(_) => Console.println("Report saved to ${path}")
+    Err(e) => Console.println("Failed to save report: ${e}")
+  }
+}
+
+test "format_report includes URLs" {
+  let checks = [{ url = "https://example.com", status = Up(200) }, { url = "https://bad.invalid", status = Down("connection refused") }]
+  let summary = { total = 2, up = 1, down = 1 }
+  let report = format_report(checks, summary)
+  assert(report.contains("https://example.com"))
+  assert(report.contains("https://bad.invalid"))
+  assert(report.contains("[UP]"))
+  assert(report.contains("[DOWN]"))
+  assert(report.contains("1 up"))
+  assert(report.contains("1 down"))
+}

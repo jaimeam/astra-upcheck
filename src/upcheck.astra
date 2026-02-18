@@ -1,0 +1,102 @@
+module upcheck
+
+enum HealthStatus =
+  | Up(code: Int)
+  | Down(reason: Text)
+  | Timeout
+
+public fn check_url(url: Text) -> { url: Text, status: HealthStatus }
+  effects(Net, Console)
+{
+  Console.println("  Checking ${url}...")
+  let result = Net.get(url)
+  match result {
+    Ok(response) => {
+      let code = response.status
+      if code >= 200 and code < 400 {
+        { url = url, status = Up(code) }
+      } else {
+        { url = url, status = Down(to_text(code)) }
+      }
+    }
+    Err(reason) => {
+      if reason.contains("timeout") {
+        { url = url, status = Timeout }
+      } else {
+        { url = url, status = Down(reason) }
+      }
+    }
+  }
+}
+
+public fn check_all(urls: List[Text]) -> List[{ url: Text, status: HealthStatus }]
+  effects(Net, Console)
+  requires urls.len() > 0
+{
+  Console.println("Checking ${to_text(urls.len())} URLs...
+")
+  let mut checks = []
+  for url in urls {
+    let check = check_url(url)
+    checks = checks + [check]
+  }
+  checks
+}
+
+public fn summarize(checks: List[{ url: Text, status: HealthStatus }]) -> { total: Int, up: Int, down: Int }
+  ensures result.up + result.down == result.total
+{
+  let mut up = 0
+  let mut down = 0
+  for check in checks {
+    match check.status {
+      Up(_) => {
+        up = up + 1
+      }
+      Down(_) => {
+        down = down + 1
+      }
+      Timeout => {
+        down = down + 1
+      }
+    }
+  }
+  { total = up + down, up = up, down = down }
+}
+
+test "summarize all up" {
+  let checks = [{ url = "https://a.com", status = Up(200) }, { url = "https://b.com", status = Up(201) }]
+  let summary = summarize(checks)
+  assert_eq(summary.up, 2)
+  assert_eq(summary.down, 0)
+  assert_eq(summary.total, 2)
+}
+
+test "summarize all down" {
+  let checks = [{ url = "https://a.com", status = Down("refused") }, { url = "https://b.com", status = Down("500") }]
+  let summary = summarize(checks)
+  assert_eq(summary.up, 0)
+  assert_eq(summary.down, 2)
+  assert_eq(summary.total, 2)
+}
+
+test "summarize mixed" {
+  let checks = [{ url = "https://a.com", status = Up(200) }, { url = "https://b.com", status = Down("refused") }, { url = "https://c.com", status = Timeout }, { url = "https://d.com", status = Up(301) }]
+  let summary = summarize(checks)
+  assert_eq(summary.up, 2)
+  assert_eq(summary.down, 2)
+  assert_eq(summary.total, 4)
+}
+
+test "empty summary" {
+  let checks = []
+  let summary = summarize(checks)
+  assert_eq(summary.total, 0)
+  assert_eq(summary.up, 0)
+  assert_eq(summary.down, 0)
+}
+
+test "check_all requires non-empty" {
+  let empty = []
+  assert(empty.len() == 0)
+}

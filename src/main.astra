@@ -1,0 +1,16 @@
+module main
+
+import upcheck.{check_all, summarize}
+
+import report.{format_report, print_report, save_report}
+
+fn main()
+  effects(Net, Console, Fs)
+{
+  let urls = ["https://example.com", "https://httpbin.org/get", "https://httpbin.org/status/500", "https://bad.invalid"]
+  let checks = check_all(urls)
+  let summary = summarize(checks)
+  let report = format_report(checks, summary)
+  print_report(report)
+  save_report(report, "report.txt")
+}

@@ -1,4 +1,4 @@
-## Astra
+## Astra Upcheck
 
 This project uses the [Astra](https://github.com/jaimeam/astra) programming language.
 
